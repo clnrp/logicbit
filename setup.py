@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 from os import path
 from io import open
 
@@ -41,6 +41,7 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
 
+    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     install_requires=['numpy'],
 
 )
