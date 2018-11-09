@@ -8,6 +8,7 @@ from io import open
 # python setup.py register
 # twine upload dist/*
 # python setup.py install
+# twine upload dist/*
 
 here = path.abspath(path.dirname(__file__))
 
@@ -16,7 +17,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='logicbit',
-    version='1.1.0',
+    version='1.1.2',
     description='logicbit it is a library for digital logic simulation',
     long_description=long_description,
     long_description_content_type='text/markdown',
