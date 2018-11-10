@@ -38,7 +38,7 @@ class Quine_mcCluskey:
     def Interaction(self, num):
         count = 0
         tmp = []
-        index = range(len(self.trueTable))
+        index = list(range(len(self.trueTable)))
         for i in range(len(self.trueTable)):
             for j  in range(i,len(self.trueTable)):
                 result = self.trueTable[i]-self.trueTable[j]+self.trueTable[i]

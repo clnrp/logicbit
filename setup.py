@@ -17,8 +17,8 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='logicbit',
-    version='1.1.2',
-    description='logicbit it is a library for digital logic simulation',
+    version='1.1.3',
+    description='logicbit is a library for digital logic simulation',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/clnrp/logicbit',
