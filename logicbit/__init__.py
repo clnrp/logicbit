@@ -1,5 +1,8 @@
 from logicbit import logic
 from logicbit import clock
+from logicbit import keyboard
 from logicbit import quine_mccluskey
 
-print("logicbit version 1.1.3")
+__version__ = "1.2.1"
+
+print("logicbit version "+__version__)

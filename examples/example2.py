@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
 from logicbit.quine_mccluskey import *
 
 trueTable = ['0000','0001','0100','0101','1111']
