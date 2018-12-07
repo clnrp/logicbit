@@ -3,6 +3,7 @@
 
 from logicbit.logic import *
 from logicbit.clock import *
+from logicbit.utils import *
 from logicbit.keyboard import *
 
 def flogic(clock):
@@ -35,14 +36,14 @@ def flogic(clock):
         Q1 = q0.Not()*q1*q2*q3.Not() + q0*q1.Not()*q2.Not()*q3.Not()
         Q0 = q0.Not()*q1.Not()*q2.Not()*q3.Not()
 
-        q0 = f0.Operate(Q0,Clk)
-        q1 = f1.Operate(Q1,Clk)
-        q2 = f2.Operate(Q2,Clk)
-        q3 = f3.Operate(Q3,Clk)
-        print(Clk,str(q0),str(q1),str(q2),str(q3))
+        q0 = f0.Operate(Q0,LogicBit(0),Clk)
+        q1 = f1.Operate(Q1,LogicBit(0),Clk)
+        q2 = f2.Operate(Q2,LogicBit(0),Clk)
+        q3 = f3.Operate(Q3,LogicBit(0),Clk)
+        Printer([Clk,q0,q1,q2,q3])
 
-        reg1.Act([q0,q1,q2,q3,bit4,bit5,bit6,bit7],Clk)
-        print(str(reg1.Read()[0]), str(reg1.Read()[1]), str(reg1.Read()[2]), str(reg1.Read()[3])) # read register
+        reg1.Act([q0,q1,q2,q3,bit4,bit5,bit6,bit7],LogicBit(1),LogicBit(0),Clk)
+        Printer(reg1.Read()[0:4])
 
 clk = Clock(flogic)
 clk.start() # inicializar clock

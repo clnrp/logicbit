@@ -14,7 +14,7 @@ class Clock(Thread):
         self.__th_clk = True
         self.__run = True
         self.__next = False
-        self.__Clk = 0
+        self.__Clk = 1
         self.__CntClk = 0
         self.__Frequency = Frequency
         self.__Samples = Samples

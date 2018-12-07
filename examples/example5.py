@@ -3,6 +3,7 @@
 
 from logicbit.logic import *
 from logicbit.clock import *
+from logicbit.utils import *
 from logicbit.keyboard import *
 
 def flogic(clock):
@@ -24,7 +25,11 @@ def flogic(clock):
     We = LogicBit(1)
     Reset = LogicBit(0)
 
-    Addr = [LogicBit(0), LogicBit(1)]
+    Addr = Utils.BinListToPyList([LogicBit(1), LogicBit(1), LogicBit(1)])
+    Dec = Decoder()
+    dec = Dec.Act(Addr)
+    Printer(dec)
+
     Data = [LogicBit(1), LogicBit(1), LogicBit(1), LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0)]
 
     cnt = 0
@@ -39,7 +44,7 @@ def flogic(clock):
         C = Ram.Act(Addr, Data, We, Reset, Clk)
 
         if (Clk == 1):
-            print(str(C[7]), str(C[6]), str(C[5]), str(C[4]), str(C[3]), str(C[2]), str(C[1]), str(C[0]))
+            Printer(C)
 
 clk = Clock(flogic,1,2)
 clk.start() # initialize clock
