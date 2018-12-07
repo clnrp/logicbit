@@ -33,17 +33,6 @@ class MarRegister: # memory address register
     def Read(self):
         return self.__reg.Read()
 
-class AccRegister: # accumulator register
-    def __init__(self):
-        self.__reg = RegTris8b()
-
-    def Act(self, Bus, AccIn, AccOut, Reset, Clk):
-        Bus = self.__reg.Act(Bus, AccIn, AccOut, Reset, Clk)
-        return Bus
-
-    def Read(self):
-        return self.__reg.Read()
-
 class IR: # instruction register
     def __init__(self):
         self.__reg = Register8b()
@@ -122,9 +111,9 @@ def flogic(clock):
     Pc = PC4bTris8b()         # program counter of 4 bits with tri-state of 8-bits
     Mar = MarRegister()       # memory address register
     Ram = RAMTris(4,8)        # RAM memory, 4 bits address and 8 bits of data
-    Acc = AccRegister()       # accumulator register
+    A = RegTris8b()           # Accumulator register
     B = Register8b()          # B register
-    C = Register8b()          # B register
+    C = Register8b()          # C register
     Alu = ALU8bTris()         # 8-bit arithmetic and logic unit
     Ir = IR()                 # instruction register
     InstDec = InstDecoder()   # instruction decoder
@@ -155,10 +144,10 @@ def flogic(clock):
         Bus = Pc.Act(Bus, w.PcInc, w.PcOut, w.Jump.Not(), w.Reset.Not(), Clk) # In Pc, Jump and Reset works in 0
         Mar.Act(Bus[0:4], w.MarIn, w.Reset, Clk)
         Bus = Ram.Act(Bus, Mar.Read(), w.We, w.RamOut, LogicBit(0), Clk)
-        Bus = Acc.Act(Bus, w.AccIn, w.AccOut, w.Reset, Clk)
+        Bus = A.Act(Bus, w.AccIn, w.AccOut, w.Reset, Clk)
         B.Act(Bus, w.BIn, w.Reset, Clk)
         C.Act(Bus, w.CIn, w.Reset, Clk)
-        Bus = Alu.Act(Bus, Acc.Read(), B.Read(), w.SumSub, w.Alu0, w.Alu1, w.AluOut)
+        Bus = Alu.Act(Bus, A.Read(), B.Read(), w.SumSub, w.Alu0, w.Alu1, w.AluOut)
         Bus, Code = Ir.Act(Bus, w.IrIn, w.IrOut, w.Reset, Clk)
         InstDec.Act(w, Code, Clk)
 
