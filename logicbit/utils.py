@@ -17,9 +17,15 @@ class Printer:
 
 class Utils:
     @staticmethod
-    def IntToBinList(value, size):
+    def BinValueToPyList(value, size):
         t = [int(bin(value)[2:].zfill(size)[i]) for i in range(size)] # binary value in list exp: Line=3, size=4 [0,0,1,1]
         bits = [LogicBit(bit) for bit in t] # list of LogicBits
+        bits.reverse()
+        return bits
+
+    @staticmethod
+    def VecBinToPyList(values): #  int(value, base=2)
+        bits = [LogicBit(bit) for bit in values] # list of LogicBits
         bits.reverse()
         return bits
 

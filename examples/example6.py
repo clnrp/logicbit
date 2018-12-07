@@ -7,42 +7,6 @@ from logicbit.utils import *
 from logicbit.keyboard import *
 
 
-class IR: # instruction register
-    def __init__(self):
-        self.__reg = Register8b()
-        self.__tristate = TristateBuffer()
-
-    def Act(self, Bus, IRIn, IROut, Reset, Clk):
-        Out = self.__reg.Act(Bus, IRIn, Reset, Clk)
-        Dir = LogicBit(1)
-        LSB = [Out[0],Out[1],Out[2],Out[3]]
-        MSB = [Out[4],Out[5],Out[6],Out[7]]
-        A = LSB+[LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
-        [A,B] = self.__tristate.Buffer(A, Bus, Dir, IROut) # Dir=1 and IROut=1 -> puts A in B
-        return B,MSB # B=Bus, MSB goes to the instruction decoder
-
-    def Read(self):
-        return self.__reg.Read()
-
-class InstDecoder: # instruction decoder
-    def __init__(self):
-        self.__dec = Decoder()
-        self.__cnt = Counter4b()
-        self.__EndCycle = LogicBit(1)
-
-    def Act(self, Word, Code, Clk):
-        nClk = LogicBit(Clk).Not()
-        Input = [LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
-        CntBits = self.__cnt.Act(Input, LogicBit(1), LogicBit(1), self.__EndCycle, nClk) # EndCycle reset Counter
-        Cycles = self.__dec.Act(CntBits)
-        self.__EndCycle = Cycles[5].Not() # Reset counter on cycle 5
-        Word.PcOut = Word.MarIn = Cycles[0]
-        Word.RamOut = Word.IrIn = Word.PcInc = Cycles[1]
-
-        print("Cycles:")
-        Printer(Cycles)
-        return Word
-
 class PC4bTris8b: # Program counter of 4 bits with tri-state
     def __init__(self):
         self.__pc4b = Counter4b()
@@ -80,6 +44,56 @@ class AccRegister: # accumulator register
     def Read(self):
         return self.__reg.Read()
 
+class IR: # instruction register
+    def __init__(self):
+        self.__reg = Register8b()
+        self.__tristate = TristateBuffer()
+
+    def Act(self, Bus, IRIn, IROut, Reset, Clk):
+        Out = self.__reg.Act(Bus, IRIn, Reset, Clk)
+        Dir = LogicBit(1)
+        LSB = [Out[0],Out[1],Out[2],Out[3]]
+        MSB = [Out[4],Out[5],Out[6],Out[7]]
+        A = LSB+[LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
+        [A,B] = self.__tristate.Buffer(A, Bus, Dir, IROut) # Dir=1 and IROut=1 -> puts A in B
+        return B,MSB # B=Bus, MSB goes to the instruction decoder
+
+    def Read(self):
+        return self.__reg.Read()
+
+class InstDecoder: # instruction decoder
+    def __init__(self):
+        self.__CycleDec = Decoder()
+        self.__InstrDec = Decoder()
+        self.__cnt = Counter4b()
+        self.__EndCycle = LogicBit(1)
+
+    def Act(self, Word, Code, Clk):
+        nClk = LogicBit(Clk).Not()
+        Input = [LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
+        CntBits = self.__cnt.Act(Input, LogicBit(1), LogicBit(1), self.__EndCycle, nClk) # EndCycle reset Counter
+        Cycle = self.__CycleDec.Act(CntBits)
+        [NOP,LDA,SUM] = self.__InstrDec.Act(Code)[:3]
+        self.__EndCycle = Cycle[5].Not() # Reset counter on cycle 5
+        Word.PcOut  = Cycle[0]
+        Word.IrOut = Cycle[2]*(LDA + SUM)
+        Word.MarIn = Cycle[0] + Cycle[2]*(LDA + SUM)
+        Word.RamOut = Cycle[1] + Cycle[3]*(LDA + SUM)
+        Word.IrIn = Cycle[1]
+        Word.PcInc = Cycle[1]
+        Word.AccIn = Cycle[3]*LDA+Cycle[4]*SUM
+        Word.BIn = Cycle[3]*SUM
+        Word.AluOut = Cycle[4]*SUM
+        ''' Cycle 0 -> PcOut e MarIn
+            Cycle 1 -> RamOut, IrIn e PcInc.
+            The control bits will be triggered on the falling edge of the clock.
+            NOP 0000
+            LDA 0001, 2 -> IrOut, MarIn; 3 -> RamOut, AccIn
+            SUM 0010, 2 -> IrOut, MarIn; 3 -> RamOut, BIn; 4 -> AluOut, AccIn
+        '''
+        print("Cycles:")
+        Printer(Cycle)
+        return Word
 
 class Word:
     def __init__(self):
@@ -118,17 +132,17 @@ def flogic(clock):
     w = Word() # Control word
 
     # test -> write program in ram
-    byte0 = [LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1),LogicBit(0)]
-    byte1 = [LogicBit(0),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1)]
-    byte2 = [LogicBit(1),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1),LogicBit(0)]
-    byte3 = [LogicBit(0),LogicBit(0),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1)]
-    byte4 = [LogicBit(1),LogicBit(0),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1),LogicBit(0)]
-    byte5 = [LogicBit(0),LogicBit(1),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1)]
-    byte6 = [LogicBit(1),LogicBit(1),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1),LogicBit(0)]
-    byte7 = [LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1)]
+    byte0 = Utils.VecBinToPyList([0,0,0,1,0,0,1,1]) # LDA 03h
+    byte1 = Utils.VecBinToPyList([0,0,1,0,0,1,0,0]) # SUM 04h
+    byte2 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0])
+    byte3 = Utils.VecBinToPyList([0,0,0,0,0,1,1,0])
+    byte4 = Utils.VecBinToPyList([0,0,0,0,0,1,0,1])
+    byte5 = Utils.VecBinToPyList([0,0,0,0,0,1,1,0])
+    byte6 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0])
+    byte7 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0])
     data = [byte0, byte1, byte2, byte3, byte4, byte5, byte6, byte7]
     for value, addr in zip(data, range(len(data))):
-        addr = Utils.IntToBinList(addr,4)
+        addr = Utils.BinValueToPyList(addr,4)
         for Clk in range(2):
             Ram.Act(value, addr, LogicBit(1), LogicBit(0), LogicBit(0), Clk)
 
@@ -138,10 +152,6 @@ def flogic(clock):
         cnt+=1
         print("Clock:"+str(Clk)+", cnt="+str(cnt))
 
-        ''' Ciclo 1 -> PcOut e MarIn
-            Ciclo 2 -> RamOut, IrIn e PcInc.
-            The control bits will be triggered on the falling edge of the clock.
-        '''
         Bus = Pc.Act(Bus, w.PcInc, w.PcOut, w.Jump.Not(), w.Reset.Not(), Clk) # In Pc, Jump and Reset works in 0
         Mar.Act(Bus[0:4], w.MarIn, w.Reset, Clk)
         Bus = Ram.Act(Bus, Mar.Read(), w.We, w.RamOut, LogicBit(0), Clk)
