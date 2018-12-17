@@ -146,7 +146,7 @@ class TristateBuffer:
                 A = B     # puts B in A
         return [A, B]
 
-class Decoder:
+class BinaryDecoder:
     def Act(self, Input):
         SizeIn = len(Input)
         SizeOut = 2**len(Input)
@@ -160,6 +160,20 @@ class Decoder:
         return Bits
 
 class Mux:
+    def __init__(self, N_in, N_out):
+        self.__Dec = BinaryDecoder()
+        self.__N_in = N_in
+        self.__N_out = N_out
+        self.__N_s = N_in/N_out # N_in > N_out
+
+    def Act(self, Input, Sel):
+        DecBits = self.__Dec.Act(Sel)[0:self.__N_s]
+        Out = [LogicBit(0)]*self.__N_out
+        for i in range(self.__N_out):
+            for j in range(self.__N_s): # bit of select
+                Out[i] += DecBits[j]*Input[j][i] # sum different vectors, but with same index of vector
+        return Out
+
     def Mux16x8(self, Imput, Sel):
         a0,a1,a2,a3,a4,a5,a6,a7 = Imput[0]
         b0,b1,b2,b3,b4,b5,b6,b7 = Imput[1]
@@ -208,6 +222,20 @@ class Mux:
         e6 = s0*a6 + s1*b6 + s2*c6 + s3*d6
         e7 = s0*a7 + s1*b7 + s2*c7 + s3*d7
         return [e0,e1,e2,e3,e4,e5,e6,e7]
+
+class DeMux:
+    def __init__(self, N_in, N_out):
+        self.__Dec = BinaryDecoder()
+        self.__N_in = N_in
+        self.__N_out = N_out
+        self.__N_s = N_out/N_in # N_out > N_in
+
+    def Act(self, Input, Sel):
+        DecBits = self.__Dec.Act(Sel)[0:self.__N_s]
+        Out = [LogicBit(0)]*self.__N_out
+        for i in range(self.__N_out):
+            Out[i] = DecBits[i%self.__N_s]*Input[i%self.__N_in]
+        return Out
 
 class Register4b: # 4-bits register
     def __init__(self):
@@ -358,7 +386,7 @@ class Counter4b: # Counter of 4 bits
 
 class ALU8b: # 8-bit arithmetic and logic unit
     def __init__(self):
-        self.__Mux = Mux()
+        self.__Mux = Mux(32,8)
         self.__tristate = TristateBuffer()
 
     def __Sum(self, A, B, CarryIn): # full adder
@@ -430,24 +458,24 @@ class ALU: # Arithmetic and logic unit
     def Act(self, A, B):
         Carry = LogicBit(0)
         Sum = [LogicBit(0) for bit in range(self.__nBits)]
-        for i in range(8):
+        for i in range(self.__nBits):
             Sum[i], Carry = self.__Sum(A[i], B[i], Carry) # operation on each bit
 
-        Borrow = LogicBit(0)
-        Sub = [LogicBit(0) for bit in range(self.__nBits)]
-        for i in range(self.__nBits):
-            Sub[i], Borrow = self.__Sub(A[i], B[i], Borrow)
+        #Borrow = LogicBit(0)
+        #Sub = [LogicBit(0) for bit in range(self.__nBits)]
+        #for i in range(self.__nBits):
+        #    Sub[i], Borrow = self.__Sub(A[i], B[i], Borrow)
 
         And = [LogicBit(0) for bit in range(self.__nBits)]
-        for i in range(8):
+        for i in range(self.__nBits):
             And[i] = A[i]*B[i]  # And logic
 
         Or = [LogicBit(0) for bit in range(self.__nBits)]
-        for i in range(8):
+        for i in range(self.__nBits):
             Or[i] = A[i]+B[i]   # Or logic
 
         Xor = [LogicBit(0) for bit in range(self.__nBits)]
-        for i in range(8):
+        for i in range(self.__nBits):
             Xor[i] = A[i]^B[i]  # Xor logic
 
         return Sum

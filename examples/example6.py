@@ -52,8 +52,8 @@ class IR: # instruction register
 
 class InstDecoder: # instruction decoder
     def __init__(self):
-        self.__CycleDec = Decoder()
-        self.__InstrDec = Decoder()
+        self.__CycleDec = BinaryDecoder()
+        self.__InstrDec = BinaryDecoder()
         self.__cnt = Counter4b()
         self.__EndCycle = LogicBit(1)
 

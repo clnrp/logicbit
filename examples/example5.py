@@ -25,8 +25,14 @@ def flogic(clock):
     We = LogicBit(1)
     Reset = LogicBit(0)
 
+    vect =[A,B,A,B] # test mux
+    sel = [LogicBit(1), LogicBit(0)]
+    mux = Mux(32,8)
+    res = mux.Act(vect,sel)
+    Printer(res)
+
     Addr = Utils.BinListToPyList([LogicBit(1), LogicBit(1), LogicBit(1)])
-    Dec = Decoder()
+    Dec = BinaryDecoder()
     dec = Dec.Act(Addr)
     Printer(dec)
 
