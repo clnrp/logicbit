@@ -145,8 +145,8 @@ def flogic(clock):
         cnt+=1
         print("Clock:"+str(Clk)+", cnt="+str(cnt))
 
-        Bus = Pc.Act(Bus, w.PcInc, w.PcOut, w.Jump.Not(), w.Reset.Not(), Clk) # In Pc, Jump and Reset works in 0
-        Mar.Act(Bus[0:4], w.MarIn, w.Reset, Clk)
+        Bus = Pc.Act(Bus, w.PcInc, w.PcOut, w.Jump, w.Reset, Clk)           # Program counter
+        Mar.Act(Bus[0:4], w.MarIn, w.Reset, Clk)                            # Memory address register
         Bus = Ram.Act(Bus, Mar.Read(), w.We, w.RamOut, LogicBit(0), Clk)
         Bus = A.Act(Bus, w.AccIn, w.AccOut, w.Reset, Clk)
         B.Act(Bus, w.BIn, w.Reset, Clk)
