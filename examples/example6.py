@@ -12,8 +12,8 @@ class PC4bTris8b: # Program counter of 4 bits with tri-state
         self.__pc4b = Counter4b()
         self.__tristate = TristateBuffer()
 
-    def Act(self, Bus, EInc, EOut, nLoad, nReset, Clk):
-        [q0, q1, q2, q3] = self.__pc4b.Act(Bus[0:4], EInc, nLoad, nReset, Clk)
+    def Act(self, Bus, EInc, EOut, Load, Reset, Clk):
+        [q0, q1, q2, q3] = self.__pc4b.Act(Bus[0:4], EInc, Load, Reset, Clk)
         Dir = LogicBit(1)
         A = [q0, q1, q2, q3, Bus[4], Bus[5], Bus[6], Bus[7]]
         [A,B] = self.__tristate.Buffer(A, Bus, Dir, EOut) # Dir=1 and EOut=1 -> puts A in B
@@ -60,10 +60,10 @@ class InstDecoder: # instruction decoder
     def Act(self, Word, Code, Clk):
         nClk = LogicBit(Clk).Not()
         Input = [LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
-        CntBits = self.__cnt.Act(Input, LogicBit(1), LogicBit(1), self.__EndCycle, nClk) # EndCycle reset Counter
+        CntBits = self.__cnt.Act(Input, LogicBit(1), LogicBit(0), self.__EndCycle, nClk) # EndCycle reset Counter
         Cycle = self.__CycleDec.Act(CntBits)
-        [NOP,LDA,SUM] = self.__InstrDec.Act(Code)[:3]
-        self.__EndCycle = Cycle[5].Not() # Reset counter on cycle 5
+        [NOP,LDA,SUM,SUB] = self.__InstrDec.Act(Code)[:4]
+        self.__EndCycle = Cycle[5]+Cycle[4]*LDA  # Reset counter
         Word.PcOut  = Cycle[0]
         Word.IrOut = Cycle[2]*(LDA + SUM)
         Word.MarIn = Cycle[0] + Cycle[2]*(LDA + SUM)
@@ -73,12 +73,16 @@ class InstDecoder: # instruction decoder
         Word.AccIn = Cycle[3]*LDA+Cycle[4]*SUM
         Word.BIn = Cycle[3]*SUM
         Word.AluOut = Cycle[4]*SUM
+        Word.SumSub = Cycle[4]*(SUM.Not()+SUB)
+        Word.Alu0 = LogicBit(0)
+        Word.Alu1 = LogicBit(0)
         ''' Cycle 0 -> PcOut e MarIn
             Cycle 1 -> RamOut, IrIn e PcInc.
             The control bits will be triggered on the falling edge of the clock.
             NOP 0000
             LDA 0001, 2 -> IrOut, MarIn; 3 -> RamOut, AccIn
-            SUM 0010, 2 -> IrOut, MarIn; 3 -> RamOut, BIn; 4 -> AluOut, AccIn
+            SUM 0010, 2 -> IrOut, MarIn; 3 -> RamOut, BIn; 4 -> SumSub=0, AluOut, AccIn
+            SUB 0011, 2 -> IrOut, MarIn; 3 -> RamOut, BIn; 4 -> SumSub=1, AluOut, AccIn
         '''
         print("Cycles:")
         Printer(Cycle)

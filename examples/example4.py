@@ -11,8 +11,8 @@ class PC4bTris8b: # Program counter of 4 bits with tri-state
         self.__pc4b = Counter4b()
         self.__tristate = TristateBuffer()
 
-    def Act(self, Bus, EInc, EOut, NLoad, NReset, Clk):
-        [q0, q1, q2, q3] = self.__pc4b.Act(Bus[0:4], EInc, NLoad, NReset, Clk)
+    def Act(self, Bus, EInc, EOut, Load, Reset, Clk):
+        [q0, q1, q2, q3] = self.__pc4b.Act(Bus[0:4], EInc, Load, Reset, Clk)
         Dir = LogicBit(1)
         A = [q0, q1, q2, q3, Bus[4], Bus[5], Bus[6], Bus[7]]
         [A,B] = self.__tristate.Buffer(A, Bus, Dir, EOut) # Dir=1 and EOut=1 -> puts A in B
@@ -34,12 +34,12 @@ def flogic(clock):
             cnt+=1
             if(cnt>=8): # load bits
                 cnt = 0
-                Reset = LogicBit(1)
-                Load = LogicBit(0)
+                Reset = LogicBit(0)
+                Load = LogicBit(1)
                 Bus = [LogicBit(0),LogicBit(1),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(1),LogicBit(0)]
             else:
-                Reset = LogicBit(1)
-                Load = LogicBit(1)
+                Reset = LogicBit(0)
+                Load = LogicBit(0)
 
         Bus = pc.Act(Bus, EIn, EOut, Load, Reset, Clk) # Load and Reset works in No
 

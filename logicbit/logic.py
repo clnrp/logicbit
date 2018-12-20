@@ -348,15 +348,15 @@ class Counter4b: # Counter of 4 bits
         self.__Ff2 = Flipflop("D", "UP")
         self.__Ff3 = Flipflop("D", "UP")
 
-    def Act(self, Input, En, nLoad, nReset, Clk): # Load and Reset works in No
+    def Act(self, Input, En, Load, Reset, Clk): # Load and Reset works in 1
         in0,in1,in2,in3 = Input
         q0 = self.__Ff0.GetQ()
         q1 = self.__Ff1.GetQ()
         q2 = self.__Ff2.GetQ()
         q3 = self.__Ff3.GetQ()
 
-        s0 = nLoad + nReset.Not()      # s0.Not()=1 -> Load=0 and Reset=1
-        s1 = s0.Not() + nReset.Not()  # s1.Not()=1 -> s1=1 and Reset=1
+        s0 = Load.Not() + Reset      # s0.Not()=1 -> Load=1 and Reset=0
+        s1 = s0.Not() + Reset        # s1.Not()=1 -> s1=0 and Reset=0
 
         Q0 = s0.Not()*in0 + s1.Not()*(q0.Not())
         Q1 = s0.Not()*in1 + s1.Not()*(q1.Not()*q0 + q1*q0.Not())
