@@ -131,7 +131,6 @@ class Flipflop:
         self.Q = LogicBit(0)
         self.NotQ = LogicBit(1)
 
-
 class TristateBuffer:
     def Single(self, A, B, Ce = None):
         if(Ce == 1):      # puts A in B
@@ -425,17 +424,6 @@ class ALU8b: # 8-bit arithmetic and logic unit
         A = self.__Mux.Mux32x8([Sum,And,Or,Xor],[Alu0,Alu1])
         return A
 
-class ALU8bTris:
-    def __init__(self):
-        self.__Alu = ALU8b()
-        self.__tristate = TristateBuffer()
-
-    def Act(self, Bus, A, B, SumSub, Alu0, Alu1, AluOut):
-        A = self.__Alu.Act(A, B, SumSub, Alu0, Alu1)
-        Dir = LogicBit(1)
-        [A,B] = self.__tristate.Buffer(A, Bus, Dir, AluOut) # Dir=1 and EOut=1 -> puts A in B
-        return B
-
 class ALU: # Arithmetic and logic unit
     def __init__(self, nBits):
         self.__nBits = nBits
@@ -479,6 +467,17 @@ class ALU: # Arithmetic and logic unit
             Xor[i] = A[i]^B[i]  # Xor logic
 
         return Sum
+
+class ALU8bTris:
+    def __init__(self):
+        self.__Alu = ALU8b()
+        self.__tristate = TristateBuffer()
+
+    def Act(self, Bus, A, B, SumSub, Alu0, Alu1, AluOut):
+        A = self.__Alu.Act(A, B, SumSub, Alu0, Alu1)
+        Dir = LogicBit(1)
+        [A,B] = self.__tristate.Buffer(A, Bus, Dir, AluOut) # Dir=1 and EOut=1 -> puts A in B
+        return B
 
 class RAM2x2b: # RAM memory of 2-bits address and 2-bits of data
     def __init__(self):

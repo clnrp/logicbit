@@ -62,8 +62,8 @@ class InstDecoder: # instruction decoder
         Input = [LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
         CntBits = self.__cnt.Act(Input, LogicBit(1), LogicBit(0), self.__EndCycle, nClk) # EndCycle reset Counter
         Cycle = self.__CycleDec.Act(CntBits)
-        [NOP,LDA,SUM,SUB] = self.__InstrDec.Act(Code)[:4]
-        self.__EndCycle = Cycle[5]+Cycle[4]*LDA  # Reset counter
+        [NOP,LDA,SUM,SUB,LDC] = self.__InstrDec.Act(Code)[:5]
+        self.__EndCycle = Cycle[5]+Cycle[4]*LDA+Cycle[3]*LDC   # Reset counter
         Word.PcOut  = Cycle[0]
         Word.IrOut = Cycle[2]*(LDA + SUM)
         Word.MarIn = Cycle[0] + Cycle[2]*(LDA + SUM)
@@ -71,7 +71,9 @@ class InstDecoder: # instruction decoder
         Word.IrIn = Cycle[1]
         Word.PcInc = Cycle[1]
         Word.AccIn = Cycle[3]*LDA+Cycle[4]*SUM
+        Word.AccOut = Cycle[2]*LDC
         Word.BIn = Cycle[3]*SUM
+        Word.CIn = Cycle[2]*LDC
         Word.AluOut = Cycle[4]*SUM
         Word.SumSub = Cycle[4]*(SUM.Not()+SUB)
         Word.Alu0 = LogicBit(0)
@@ -83,6 +85,7 @@ class InstDecoder: # instruction decoder
             LDA 0001, 2 -> IrOut, MarIn; 3 -> RamOut, AccIn
             SUM 0010, 2 -> IrOut, MarIn; 3 -> RamOut, BIn; 4 -> SumSub=0, AluOut, AccIn
             SUB 0011, 2 -> IrOut, MarIn; 3 -> RamOut, BIn; 4 -> SumSub=1, AluOut, AccIn
+            LDC 0100, 2 -> AccOut, CIn
         '''
         print("Cycles:")
         Printer(Cycle)
@@ -99,14 +102,14 @@ class Word:
         self.BIn = LogicBit(0)      # Load Bus into B register
         self.CIn = LogicBit(0)      # Load Bus into C register
         self.SumSub = LogicBit(0)   # Enable sum operation in 0, and subtraction in 1
-        self.Alu0 = LogicBit(0)
-        self.Alu1 = LogicBit(0)
-        self.AluOut = LogicBit(0)
-        self.We = LogicBit(0)
-        self.MarIn = LogicBit(0)
-        self.RamOut = LogicBit(0)
-        self.IrIn = LogicBit(0)
-        self.IrOut = LogicBit(0)
+        self.Alu0 = LogicBit(0)     #
+        self.Alu1 = LogicBit(0)     #
+        self.AluOut = LogicBit(0)   # Puts ALU data into Bus
+        self.We = LogicBit(0)       # Write/Read Ram
+        self.MarIn = LogicBit(0)    # Load Bus into MAR register
+        self.RamOut = LogicBit(0)   # Puts Ram data into Bus
+        self.IrIn = LogicBit(0)     # Load Bus into IR register
+        self.IrOut = LogicBit(0)    # Puts IR register into Bus
 
 
 def flogic(clock):
@@ -125,15 +128,20 @@ def flogic(clock):
     w = Word() # Control word
 
     # test -> write program in ram
-    byte0 = Utils.VecBinToPyList([0,0,0,1,0,0,1,1]) # LDA 03h
-    byte1 = Utils.VecBinToPyList([0,0,1,0,0,1,0,0]) # SUM 04h
-    byte2 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0])
-    byte3 = Utils.VecBinToPyList([0,0,0,0,0,1,1,0])
-    byte4 = Utils.VecBinToPyList([0,0,0,0,0,1,0,1])
-    byte5 = Utils.VecBinToPyList([0,0,0,0,0,1,1,0])
-    byte6 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0])
-    byte7 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0])
-    data = [byte0, byte1, byte2, byte3, byte4, byte5, byte6, byte7]
+    byte00 = Utils.VecBinToPyList([0,0,0,1,1,0,1,0]) # 0000 LDA 0Ah
+    byte01 = Utils.VecBinToPyList([0,0,1,0,1,0,1,1]) # 0001 SUM 0Bh
+    byte02 = Utils.VecBinToPyList([0,1,0,0,0,0,0,0]) # 0010 LDC
+    byte03 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0011
+    byte04 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0100
+    byte05 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0101
+    byte06 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0110
+    byte07 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0111
+    byte08 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 1000
+    byte09 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 1001
+    byte10 = Utils.VecBinToPyList([0,0,0,1,0,1,0,1]) # 1010
+    byte11 = Utils.VecBinToPyList([0,0,0,0,0,1,1,0]) # 1011
+    byte12 = Utils.VecBinToPyList([0,0,1,0,0,1,1,0]) # 1100
+    data = [byte00, byte01, byte02, byte03, byte04, byte05, byte06, byte07, byte08, byte09, byte10, byte11, byte12]
     for value, addr in zip(data, range(len(data))):
         addr = Utils.BinValueToPyList(addr,4)
         for Clk in range(2):
@@ -156,7 +164,9 @@ def flogic(clock):
         InstDec.Act(w, Code, Clk)
 
         #if (Clk == 1):
-        Printer(Bus)
+        Printer(A.Read(),"A")
+        Printer(C.Read(),"C")
+        Printer(Bus,"Bus")
 
 clk = Clock(flogic,1,3) # two samples per state
 clk.start() # initialize clock

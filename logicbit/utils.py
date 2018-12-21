@@ -8,12 +8,12 @@
 from logicbit.logic import *
 
 class Printer:
-    def __init__(self, values):
+    def __init__(self, values=None, name=""):
         if ('list' in str(type(values))): # check if it's a list
             values = list(values) # copy list
             values.reverse()
             lstr = [str(value) for value in values]
-            print(lstr)
+            print(str(name)+"-"+str(lstr))
 
 class Utils:
     @staticmethod
