@@ -370,9 +370,9 @@ class Counter4b: # Counter of 4 bits
 
     def Operate(self, Clk):
         In = [LogicBit(0) for bit in range(4)]
-        Load = LogicBit(1)
         En = LogicBit(1)
-        Reset = LogicBit(1)
+        Load = LogicBit(0)
+        Reset = LogicBit(0)
         return self.Act(En, In, Load, Reset, Clk)
 
     def Read(self):
@@ -381,6 +381,69 @@ class Counter4b: # Counter of 4 bits
         Out[1] = self.__Ff1.GetQ()
         Out[2] = self.__Ff2.GetQ()
         Out[3] = self.__Ff3.GetQ()
+        return Out
+
+class Counter8b: # Counter of 8 bits
+    def __init__(self):
+        self.__Ff0 = Flipflop("D", "UP")
+        self.__Ff1 = Flipflop("D", "UP")
+        self.__Ff2 = Flipflop("D", "UP")
+        self.__Ff3 = Flipflop("D", "UP")
+        self.__Ff4 = Flipflop("D", "UP")
+        self.__Ff5 = Flipflop("D", "UP")
+        self.__Ff6 = Flipflop("D", "UP")
+        self.__Ff7 = Flipflop("D", "UP")
+
+    def Act(self, Input, En, Load, Reset, Clk):
+        in0,in1,in2,in3,in4,in5,in6,in7 = Input
+        q0 = self.__Ff0.GetQ()
+        q1 = self.__Ff1.GetQ()
+        q2 = self.__Ff2.GetQ()
+        q3 = self.__Ff3.GetQ()
+        q4 = self.__Ff4.GetQ()
+        q5 = self.__Ff5.GetQ()
+        q6 = self.__Ff6.GetQ()
+        q7 = self.__Ff7.GetQ()
+
+        s0 = Load.Not() + Reset      # s0.Not()=1 -> Load=1 and Reset=0
+        s1 = s0.Not() + Reset        # s1.Not()=1 -> s1=0 and Reset=0
+
+        Q0 = s0.Not()*in0 + s1.Not()*(q0.Not())
+        Q1 = s0.Not()*in1 + s1.Not()*(q1.Not()*q0 + q1*q0.Not())
+        Q2 = s0.Not()*in2 + s1.Not()*(q2.Not()*q1*q0 + q2*q1.Not() + q2*q0.Not())
+        Q3 = s0.Not()*in3 + s1.Not()*(q3.Not()*q2*q1*q0 + q3*q2.Not() + q3*q1.Not() + q3*q0.Not())
+        Q4 = s0.Not()*in4 + s1.Not()*(q4.Not()*q3*q2*q1*q0 + q4*q3.Not() + q4*q2.Not() + q4*q1.Not() + q4*q0.Not())
+        Q5 = s0.Not()*in5 + s1.Not()*(q5.Not()*q4*q3*q2*q1*q0 + q5*q4.Not() + q5*q3.Not() + q5*q2.Not() + q5*q1.Not() + q5*q0.Not())
+        Q6 = s0.Not()*in6 + s1.Not()*(q6.Not()*q5*q4*q3*q2*q1*q0 + q6*q5.Not() + q6*q4.Not() + q6*q3.Not() + q6*q2.Not() + q6*q1.Not() + q6*q0.Not())
+        Q7 = s0.Not()*in7 + s1.Not()*(q7.Not()*q6*q5*q4*q3*q2*q1*q0 + q7*q6.Not() + q7*q5.Not() + q7*q4.Not() + q7*q3.Not() + q7*q2.Not() + q7*q1.Not() + q7*q0.Not())
+
+        q0 = self.__Ff0.Operate(En*Q0+En.Not()*self.__Ff0.GetQ(), LogicBit(0), Clk)
+        q1 = self.__Ff1.Operate(En*Q1+En.Not()*self.__Ff1.GetQ(), LogicBit(0), Clk)
+        q2 = self.__Ff2.Operate(En*Q2+En.Not()*self.__Ff2.GetQ(), LogicBit(0), Clk)
+        q3 = self.__Ff3.Operate(En*Q3+En.Not()*self.__Ff3.GetQ(), LogicBit(0), Clk)
+        q4 = self.__Ff4.Operate(En*Q4+En.Not()*self.__Ff4.GetQ(), LogicBit(0), Clk)
+        q5 = self.__Ff5.Operate(En*Q5+En.Not()*self.__Ff5.GetQ(), LogicBit(0), Clk)
+        q6 = self.__Ff6.Operate(En*Q6+En.Not()*self.__Ff6.GetQ(), LogicBit(0), Clk)
+        q7 = self.__Ff7.Operate(En*Q7+En.Not()*self.__Ff7.GetQ(), LogicBit(0), Clk)
+        return [q0,q1,q2,q3,q4,q5,q6,q7]
+
+    def Operate(self, Clk):
+        In = [LogicBit(0) for bit in range(8)]
+        En = LogicBit(1)
+        Load = LogicBit(0)
+        Reset = LogicBit(0)
+        return self.Act(En, In, Load, Reset, Clk)
+
+    def Read(self):
+        Out = [0]*8
+        Out[0] = self.__Ff0.GetQ()
+        Out[1] = self.__Ff1.GetQ()
+        Out[2] = self.__Ff2.GetQ()
+        Out[3] = self.__Ff3.GetQ()
+        Out[4] = self.__Ff4.GetQ()
+        Out[5] = self.__Ff5.GetQ()
+        Out[6] = self.__Ff6.GetQ()
+        Out[7] = self.__Ff7.GetQ()
         return Out
 
 class ALU8b: # 8-bit arithmetic and logic unit

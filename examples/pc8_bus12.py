@@ -6,25 +6,51 @@ from logicbit.clock import *
 from logicbit.utils import *
 from logicbit.keyboard import *
 
-
-class PC4bTris8b: # Program counter of 4 bits with tri-state
+class Reg8bTris12b:
     def __init__(self):
-        self.__pc4b = Counter4b()
+        self.__reg = Register8b()
         self.__tristate = TristateBuffer()
 
-    def Act(self, Bus, EInc, EOut, Load, Reset, Clk):
-        [q0, q1, q2, q3] = self.__pc4b.Act(Bus[0:4], EInc, Load, Reset, Clk)
+    def Act(self, Bus, EIn, EOut, Reset, Clk):
+        A = self.__reg.Act(Bus[0:8], EIn, Reset, Clk)
         Dir = LogicBit(1)
-        A = [q0, q1, q2, q3, Bus[4], Bus[5], Bus[6], Bus[7]]
+        A = A + [LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0)]
         [A,B] = self.__tristate.Buffer(A, Bus, Dir, EOut) # Dir=1 and EOut=1 -> put A in B
         return B
 
     def Read(self):
-        return self.__pc4b.Read()
+        return self.__reg.Read()
+
+class PC8bTris: # Program counter of 8 bits with tri-state
+    def __init__(self):
+        self.__pc8b = Counter8b()
+        self.__tristate = TristateBuffer()
+
+    def Act(self, Bus, EInc, EOut, Load, Reset, Clk):
+        A = self.__pc8b.Act(Bus[0:8], EInc, Load, Reset, Clk)
+        Dir = LogicBit(1)
+        A = A + [LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0)]
+        [A,B] = self.__tristate.Buffer(A, Bus, Dir, EOut) # Dir=1 and EOut=1 -> put A in B
+        return B
+
+    def Read(self):
+        return self.__pc8b.Read()
+
+class ALU8bTris12b:
+    def __init__(self):
+        self.__Alu = ALU8b()
+        self.__tristate = TristateBuffer()
+
+    def Act(self, Bus, A, B, Flags, SumSub, Alu0, Alu1, AluOut):
+        A = self.__Alu.Act(A, B, SumSub, Alu0, Alu1)
+        Dir = LogicBit(1)
+        A = A + [LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0)]
+        [A,B] = self.__tristate.Buffer(A, Bus, Dir, AluOut) # Dir=1 and EOut=1 -> put A in B
+        return B
 
 class MarRegister: # memory address register
     def __init__(self):
-        self.__reg = Register4b() # 4-bits register
+        self.__reg = Register8b() # 8-bits register
 
     def Act(self, Bus, MarIn, Reset, Clk):
         value = self.__reg.Act(Bus, MarIn, Reset, Clk)
@@ -35,15 +61,15 @@ class MarRegister: # memory address register
 
 class IR: # instruction register
     def __init__(self):
-        self.__reg = Register8b()
+        self.__reg = Register(12) # 12 bits register
         self.__tristate = TristateBuffer()
 
     def Act(self, Bus, IRIn, IROut, Reset, Clk):
         Out = self.__reg.Act(Bus, IRIn, Reset, Clk)
         Dir = LogicBit(1)
-        LSB = [Out[0],Out[1],Out[2],Out[3]]
-        MSB = [Out[4],Out[5],Out[6],Out[7]]
-        A = LSB+[LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
+        LSB = Out[0:8]  # 8 bits
+        MSB = Out[8:12] # 4 bits
+        A = LSB + [LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0)]
         [A,B] = self.__tristate.Buffer(A, Bus, Dir, IROut) # Dir=1 and IROut=1 -> put A in B
         return B,MSB # B=Bus, MSB goes to the instruction decoder
 
@@ -57,7 +83,7 @@ class InstDecoder: # instruction decoder
         self.__cnt = Counter4b()
         self.__EndCycle = LogicBit(1)
 
-    def Act(self, Word, Code, Clk):
+    def Act(self, Word, Code, Flags, Clk):
         nClk = LogicBit(Clk).Not()
         Input = [LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
         CntBits = self.__cnt.Act(Input, LogicBit(1), LogicBit(0), self.__EndCycle, nClk) # EndCycle reset Counter
@@ -114,36 +140,37 @@ class Word:
 
 def flogic(clock):
 
-    Bus = [LogicBit(0) for bit in range(8)] # initializes bits of the Bus with 0
-    Pc = PC4bTris8b()         # program counter of 4 bits with tri-state of 8-bits
+    Bus = [LogicBit(0) for bit in range(12)] # initializes 12 bits of the Bus with 0
+    Pc = PC8bTris()           # program counter of 8 bits with tri-state
     Mar = MarRegister()       # memory address register
-    Ram = RAMTris(4,8)        # RAM memory, 4 bits address and 8 bits of data
-    A = RegTris8b()           # Accumulator register
+    Ram = RAMTris(8,12)       # RAM memory, 8 bits address and 12 bits of data
+    A = Reg8bTris12b()        # Accumulator register
     B = Register8b()          # B register
+    F = Register8b()          # Flag register
     C = Register8b()          # C register
-    Alu = ALU8bTris()         # 8-bit arithmetic and logic unit
+    Alu = ALU8bTris12b()      # 8-bit arithmetic and logic unit
     Ir = IR()                 # instruction register
     InstDec = InstDecoder()   # instruction decoder
 
     w = Word() # Control word
 
     # test -> write program in ram
-    byte00 = Utils.VecBinToPyList([0,0,0,1,1,0,1,0]) # 0000 LDA 0Ah
-    byte01 = Utils.VecBinToPyList([0,0,1,0,1,0,1,1]) # 0001 SUM 0Bh
-    byte02 = Utils.VecBinToPyList([0,1,0,0,0,0,0,0]) # 0010 LDC
-    byte03 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0011
-    byte04 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0100
-    byte05 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0101
-    byte06 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0110
-    byte07 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 0111
-    byte08 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 1000
-    byte09 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0]) # 1001
-    byte10 = Utils.VecBinToPyList([0,0,0,1,0,1,0,1]) # 1010
-    byte11 = Utils.VecBinToPyList([0,0,0,0,0,1,1,0]) # 1011
-    byte12 = Utils.VecBinToPyList([0,0,1,0,0,1,1,0]) # 1100
+    byte00 = Utils.VecBinToPyList([0,0,0,1,0,0,0,0,1,0,1,0]) # 0000 LDA 0Ah
+    byte01 = Utils.VecBinToPyList([0,0,1,0,0,0,0,0,1,0,1,1]) # 0001 SUM 0Bh
+    byte02 = Utils.VecBinToPyList([0,1,0,0,0,0,0,0,0,0,0,0]) # 0010 LDC
+    byte03 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 0011
+    byte04 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 0100
+    byte05 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 0101
+    byte06 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 0110
+    byte07 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 0111
+    byte08 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 1000
+    byte09 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 1001
+    byte10 = Utils.VecBinToPyList([0,0,0,0,0,0,0,1,0,1,0,1]) # 1010
+    byte11 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,1,1,0]) # 1011
+    byte12 = Utils.VecBinToPyList([0,0,0,0,0,0,1,0,0,1,1,0]) # 1100
     data = [byte00, byte01, byte02, byte03, byte04, byte05, byte06, byte07, byte08, byte09, byte10, byte11, byte12]
     for value, addr in zip(data, range(len(data))):
-        addr = Utils.BinValueToPyList(addr,4)
+        addr = Utils.BinValueToPyList(addr,8)
         for Clk in range(2):
             Ram.Act(value, addr, LogicBit(1), LogicBit(0), LogicBit(0), Clk)
 
@@ -153,20 +180,20 @@ def flogic(clock):
         cnt+=1
         print("Clock:"+str(Clk)+", cnt="+str(cnt))
 
-        Bus = Pc.Act(Bus, w.PcInc, w.PcOut, w.Jump, w.Reset, Clk)           # Program counter
-        Mar.Act(Bus[0:4], w.MarIn, w.Reset, Clk)                            # Memory address register
-        Bus = Ram.Act(Bus, Mar.Read(), w.We, w.RamOut, LogicBit(0), Clk)
+        Bus = Pc.Act(Bus, w.PcInc, w.PcOut, w.Jump, w.Reset, Clk)           # Program counter, 8 bits
+        Mar.Act(Bus[0:8], w.MarIn, w.Reset, Clk)                            # Memory address 8 bits register
+        Bus = Ram.Act(Bus, Mar.Read(), w.We, w.RamOut, LogicBit(0), Clk)    # RAM memory, 8 bits address and 12 bits of data
         Bus = A.Act(Bus, w.AccIn, w.AccOut, w.Reset, Clk)
-        B.Act(Bus, w.BIn, w.Reset, Clk)
-        C.Act(Bus, w.CIn, w.Reset, Clk)
-        Bus = Alu.Act(Bus, A.Read(), B.Read(), w.SumSub, w.Alu0, w.Alu1, w.AluOut)
-        Bus, Code = Ir.Act(Bus, w.IrIn, w.IrOut, w.Reset, Clk)
-        InstDec.Act(w, Code, Clk)
+        B.Act(Bus[0:8], w.BIn, w.Reset, Clk)
+        C.Act(Bus[0:8], w.CIn, w.Reset, Clk)
+        Bus = Alu.Act(Bus, A.Read(), B.Read(), F, w.SumSub, w.Alu0, w.Alu1, w.AluOut)
+        Bus, Code = Ir.Act(Bus, w.IrIn, w.IrOut, w.Reset, Clk)             # Instruction register, 12 bits
+        InstDec.Act(w, Code, F, Clk)
 
-        if (Clk == 1):
-            Printer(A.Read(),"A")
-            Printer(C.Read(),"C")
-            Printer(Bus,"Bus")
+        #if (Clk == 1):
+        Printer(A.Read(),"A")
+        Printer(C.Read(),"C")
+        Printer(Bus,"Bus")
 
 clk = Clock(flogic,1,3) # two samples per state
 clk.start() # initialize clock
