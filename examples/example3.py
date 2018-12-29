@@ -26,10 +26,20 @@ def flogic(clock):
     q2 = f2.GetQ()
     q3 = f3.GetQ()
 
-    reg1 = Register8b()
+    reg1 = Register8b_Sb()
+
+    for Clk in [LogicBit(0), LogicBit(1)]:
+        reg1.Act(Utils.VecBinToPyList([1,0,0,0,0,1,1,1]), LogicBit(1), LogicBit(0), Clk)
+    Printer(reg1.Read())
+
+    Mask = Utils.VecBinToPyList([0,0,0,0,0,0,0,1])
+    for Clk in [LogicBit(0), LogicBit(1)]:
+        reg1.SetBit(LogicBit(0), Mask, LogicBit(1), Clk)  # Reset bit zero of the register
+    Printer(reg1.Read())
 
     while(clock.GetState()):
         Clk = clock.GetClock()
+        clock.Print()
 
         Q3 = LogicBit(0)
         Q2 = q0.Not()*q1*q2.Not()*q3.Not() + q0*q1.Not()*q2.Not()*q3.Not()
@@ -40,12 +50,12 @@ def flogic(clock):
         q1 = f1.Operate(Q1,LogicBit(0),Clk)
         q2 = f2.Operate(Q2,LogicBit(0),Clk)
         q3 = f3.Operate(Q3,LogicBit(0),Clk)
-        Printer([Clk,q0,q1,q2,q3])
+        Printer([q0,q1,q2,q3])
 
         reg1.Act([q0,q1,q2,q3,bit4,bit5,bit6,bit7],LogicBit(1),LogicBit(0),Clk)
-        Printer(reg1.Read()[0:4])
+        Printer(reg1.Read())
 
 clk = Clock(flogic)
 clk.start() # inicializar clock
-key = Keyboard(clk)
-key.start() # inicializar teclado
+#key = Keyboard(clk)
+#key.start() # inicializar teclado

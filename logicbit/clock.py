@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # encoding: utf-8
 
+from logicbit.logic import *
 from threading import Thread
 import time
 
@@ -14,7 +15,7 @@ class Clock(Thread):
         self.__th_clk = True
         self.__run = True
         self.__next = False
-        self.__Clk = 1
+        self.__Clk = LogicBit(1)
         self.__CntClk = 0
         self.__Frequency = Frequency
         self.__Samples = Samples
@@ -35,13 +36,13 @@ class Clock(Thread):
             self.__CntClk+=1
             if (self.__CntClk == self.__Samples): # number of samples per clock state
                 if(self.__Clk  == 0):
-                    self.__Clk = 1
+                    self.__Clk = LogicBit(1)
                 else:
-                   self.__Clk = 0
+                   self.__Clk = LogicBit(0)
                 self.__CntClk = 0
         else:
             while(self.__next == False and not self.__run and self.__th_clk): # keep the method waiting
-                 time.sleep(1)
+                 time.sleep(1) # one second
             self.__next = False
         return  self.__Clk
 
@@ -51,10 +52,13 @@ class Clock(Thread):
     def Next(self): # toggle the clock
         self.__next = True
         self.__run = False
-        self.__Clk = int(not self.__Clk)
+        self.__Clk = self.__Clk.Not()
 
     def Pause(self):
         self.__run = False
 
     def Run(self): # stand-alone mode
         self.__run = True
+
+    def Print(self):
+        print("Clock: "+str(self.__Clk))

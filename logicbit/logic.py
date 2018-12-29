@@ -42,43 +42,43 @@ class LogicBit:
 
 class Flipflop:
     def __init__(self, Type, Level):
-        self.map = {"UP": 1, "DOWN": 0}
+        self.map = {"UP": LogicBit(1), "DOWN": LogicBit(0)}
         self.Q = LogicBit(0)
         self.NotQ = LogicBit(1)
         self.Type = Type
         self.Level = Level
-        self.Clk = int(not self.map[self.Level])
+        self.Clk = self.map[self.Level].Not()
 
     def __D(self, D = None, Clk=None): # Q = D
-        if(Clk == self.map[self.Level] and self.Clk == int(not self.map[self.Level]) and self.Clk != Clk):
+        if(Clk == self.map[self.Level] and self.Clk == self.map[self.Level].Not() and self.Clk != Clk):
             self.Q = D
             self.NotQ = D.Not()
             self.Clk = Clk
-        elif(Clk == int(not self.map[self.Level])):
+        elif(Clk == self.map[self.Level].Not()):
             self.Clk = Clk
 
     def __T(self, T = None, Clk=None): # T = 0 -> Q = Q; T = 1 -> Q = ~Q
-        if(Clk == self.map[self.Level] and self.Clk == int(not self.map[self.Level]) and self.Clk != Clk):
+        if(Clk == self.map[self.Level] and self.Clk == self.map[self.Level].Not() and self.Clk != Clk):
             if (T == 1):
                  self.Q = self.NotQ
                  self.NotQ = self.Q.Not()
             self.Clk = Clk
-        elif(Clk == int(not self.map[self.Level])):
+        elif(Clk == self.map[self.Level].Not()):
             self.Clk = Clk
 
     def __SR(self, S=None, R=None, Clk=None):
-        if (Clk == self.map[self.Level] and self.Clk == int(not self.map[self.Level]) and self.Clk != Clk):
+        if (Clk == self.map[self.Level] and self.Clk == self.map[self.Level].Not() and self.Clk != Clk):
             if(S == 1 and R == 0):
                 self.Q = 1
                 self.NotQ = self.Q.Not()
             elif(S == 0 and R == 1):
                 self.Q = 0
                 self.NotQ = self.Q.Not()
-            elif (Clk == int(not self.map[self.Level])):
+            elif (Clk == self.map[self.Level].Not()):
                 self.Clk = Clk
 
     def __JK(self, J=None, K=None, Clk=None):
-        if (Clk == self.map[self.Level] and self.Clk == int(not self.map[self.Level]) and self.Clk != Clk):
+        if (Clk == self.map[self.Level] and self.Clk == self.map[self.Level].Not() and self.Clk != Clk):
             if(J == 1 and K == 0):
                 self.Q = 1
                 self.NotQ = self.Q.Not()
@@ -88,7 +88,7 @@ class Flipflop:
             elif(J == 1 and K == 1):
                 self.Q = self.NotQ
                 self.NotQ = self.Q.Not()
-        elif(Clk == int(not self.map[self.Level])):
+        elif(Clk == self.map[self.Level].Not()):
             self.Clk = Clk
 
     def Act(self, Input = None, Reset=None, Clk=None):
@@ -271,7 +271,7 @@ class Register8b: # 8-bits register
         self.__Ff7 = Flipflop("D","UP")
 
     def Act(self, Input, En, Reset = None, Clk = None):
-        Out = list(range(8))
+        Out = [0]*8
         Out[0] = self.__Ff0.Operate(En*Input[0]+En.Not()*self.__Ff0.GetQ(), Reset, Clk)
         Out[1] = self.__Ff1.Operate(En*Input[1]+En.Not()*self.__Ff1.GetQ(), Reset, Clk)
         Out[2] = self.__Ff2.Operate(En*Input[2]+En.Not()*self.__Ff2.GetQ(), Reset, Clk)
@@ -283,7 +283,7 @@ class Register8b: # 8-bits register
         return Out
 
     def Read(self):
-        Out = list(range(8))
+        Out = [0]*8
         Out[0] = self.__Ff0.GetQ()
         Out[1] = self.__Ff1.GetQ()
         Out[2] = self.__Ff2.GetQ()
@@ -292,6 +292,24 @@ class Register8b: # 8-bits register
         Out[5] = self.__Ff5.GetQ()
         Out[6] = self.__Ff6.GetQ()
         Out[7] = self.__Ff7.GetQ()
+        return Out
+
+class Register8b_Sb: # Allow change a specific bit
+    def __init__(self):
+        self.__reg = Register8b()
+
+    def Act(self, Input, En, Reset=None, Clk=None):
+        Out = self.__reg.Act(Input, En, Reset, Clk)
+        return Out
+
+    def Read(self):
+        return self.__reg.Read()
+
+    def SetBit(self, Input, Mask, En, Clk):
+        Out = [0]*8
+        Data = self.Read()
+        Input_m = [Mask[i].Not()*Data[i]+Mask[i]*Input[i] for i in range(8)]
+        self.Act(Input_m, En, LogicBit(0), Clk)
         return Out
 
 class RegTris8b:
@@ -327,6 +345,34 @@ class Register:
         else:
             for i in range(self.__nBits):
                 Out[i] = self.__Ffs[i].GetQ()
+        return Out
+
+class Register_Sb: # Allow change a specific bit
+    def __init__(self, nBits):
+        self.__nBits = nBits
+        self.__Ffs = [Flipflop("D","UP") for i in range(self.__nBits)]
+
+    def Act(self, Input, En, Reset = None, Clk = None):
+        Out = list(range(self.__nBits))
+        if(len(Input) == self.__nBits):
+            for i in range(self.__nBits):
+                Out[i] = self.__Ffs[i].Operate(En*Input[i]+En.Not()*self.__Ffs[i].GetQ(), Reset, Clk)
+        return Out
+
+    def Read(self, Open = None, Own = None):
+        Out = range(self.__nBits)
+        if(Open == 1 and len(Own) == self.__nBits):
+            return Own
+        else:
+            for i in range(self.__nBits):
+                Out[i] = self.__Ffs[i].GetQ()
+        return Out
+
+    def SetBit(self, Input, Mask, En, Clk):
+        Out = [0]*self.__nBits
+        Data = self.Read()
+        Input_m = [Mask[i].Not()*Data[i]+Mask[i]*Input[i] for i in range(self.__nBits)]
+        self.Act(Input_m, En, LogicBit(0), Clk)
         return Out
 
 class RegTris:
@@ -466,10 +512,10 @@ class ALU8b: # 8-bit arithmetic and logic unit
         return value
 
     def Act(self, A, B, SumSub, Alu0, Alu1):
-        Carry = SumSub
+        CarryBorrow = SumSub # SumSub = 0 -> Carry and SumSub = 1 -> Borrow
         Sum = [LogicBit(0) for bit in range(8)]
         for i in range(8):
-            Sum[i], Carry = self.__Sum(A[i], B[i]^SumSub, Carry) # if SumSub=1 -> subtractor with complement 2
+            Sum[i], CarryBorrow = self.__Sum(A[i], B[i]^SumSub, CarryBorrow) # if SumSub=1 -> subtractor with complement 2
 
         And = [LogicBit(0) for bit in range(8)]
         for i in range(8):
@@ -485,7 +531,7 @@ class ALU8b: # 8-bit arithmetic and logic unit
 
         Dir = LogicBit(1)
         A = self.__Mux.Mux32x8([Sum,And,Or,Xor],[Alu0,Alu1])
-        return A
+        return A,CarryBorrow
 
 class ALU: # Arithmetic and logic unit
     def __init__(self, nBits):
@@ -631,6 +677,10 @@ class RAM: # RAM memory of 4-bits address and 8-bits of data
                 DataOut[i]=DataOut[i]+values[j][i]*read[j][i] # j is line and i is bit
         return DataOut
 
+    def Read(self, Addr):
+        DataIn = [LogicBit(0) for i in self.__DataSize]
+        DataOut = self.Act(Addr, DataIn, LogicBit(1), LogicBit(0), LogicBit(0))
+        return DataOut
 
 class RAMTris: # RAM memory with tri-state
     def __init__(self, AddrSize, DataSize):

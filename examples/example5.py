@@ -11,12 +11,14 @@ def flogic(clock):
     Alu = ALU8b()             # 8-bit arithmetic and logic unit
     Ram = RAM(2,8)            # 2 bits address and 8 bits of data
 
-    AddSub = LogicBit(1)
+    AddSub = LogicBit(0)
     Alu0 = LogicBit(0)
     Alu1 = LogicBit(0)
 
-    A = [LogicBit(1), LogicBit(0), LogicBit(1), LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(1), LogicBit(0)]
-    B = [LogicBit(1), LogicBit(1), LogicBit(1), LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0), LogicBit(0)]
+    A = Utils.VecBinToPyList([1, 1, 1, 1, 1, 1, 1, 1])
+    B = Utils.VecBinToPyList([0, 0, 0, 0, 0, 0, 0, 1])
+    Printer(A,"A")
+    Printer(B,"B")
 
     #Ad0 = LogicBit(0)
     #Ad1 = LogicBit(1)
@@ -46,11 +48,11 @@ def flogic(clock):
             if(cnt>=4): # read memory
                 We = LogicBit(0)
 
-        C = Alu.Act(A, B, AddSub, Alu0, Alu1)
-        C = Ram.Act(Addr, Data, We, Reset, Clk)
+        C,Carry = Alu.Act(A, B, AddSub, Alu0, Alu1)
+        #C = Ram.Act(Addr, Data, We, Reset, Clk)
 
-        if (Clk == 1):
-            Printer(C)
+        #if (Clk == 1):
+        Printer(C)
 
 clk = Clock(flogic,1,2)
 clk.start() # initialize clock

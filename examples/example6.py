@@ -58,7 +58,7 @@ class InstDecoder: # instruction decoder
         self.__EndCycle = LogicBit(1)
 
     def Act(self, Word, Code, Clk):
-        nClk = LogicBit(Clk).Not()
+        nClk = Clk.Not()
         Input = [LogicBit(0),LogicBit(0),LogicBit(0),LogicBit(0)]
         CntBits = self.__cnt.Act(Input, LogicBit(1), LogicBit(0), self.__EndCycle, nClk) # EndCycle reset Counter
         Cycle = self.__CycleDec.Act(CntBits)
@@ -144,7 +144,7 @@ def flogic(clock):
     data = [byte00, byte01, byte02, byte03, byte04, byte05, byte06, byte07, byte08, byte09, byte10, byte11, byte12]
     for value, addr in zip(data, range(len(data))):
         addr = Utils.BinValueToPyList(addr,4)
-        for Clk in range(2):
+        for Clk in [LogicBit(0), LogicBit(1)]:
             Ram.Act(value, addr, LogicBit(1), LogicBit(0), LogicBit(0), Clk)
 
     cnt=0
