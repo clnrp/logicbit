@@ -298,19 +298,14 @@ class Register8b_Sb: # Allow change a specific bit
     def __init__(self):
         self.__reg = Register8b()
 
-    def Act(self, Input, En, Reset=None, Clk=None):
+    def Act(self, Input, Mask, En, Reset=None, Clk=None):
+        Data = self.Read()
+        Input_m = [Mask[i].Not()*Data[i]+Mask[i]*Input[i] for i in range(8)]
         Out = self.__reg.Act(Input, En, Reset, Clk)
         return Out
 
     def Read(self):
         return self.__reg.Read()
-
-    def SetBit(self, Input, Mask, En, Clk):
-        Out = [0]*8
-        Data = self.Read()
-        Input_m = [Mask[i].Not()*Data[i]+Mask[i]*Input[i] for i in range(8)]
-        self.Act(Input_m, En, LogicBit(0), Clk)
-        return Out
 
 class RegTris8b:
     def __init__(self):
@@ -352,11 +347,13 @@ class Register_Sb: # Allow change a specific bit
         self.__nBits = nBits
         self.__Ffs = [Flipflop("D","UP") for i in range(self.__nBits)]
 
-    def Act(self, Input, En, Reset = None, Clk = None):
+    def Act(self, Input, Mask, En, Reset = None, Clk = None):
         Out = list(range(self.__nBits))
+        Data = self.Read()
+        Input_m = [Mask[i].Not()*Data[i]+Mask[i]*Input[i] for i in range(self.__nBits)]
         if(len(Input) == self.__nBits):
             for i in range(self.__nBits):
-                Out[i] = self.__Ffs[i].Operate(En*Input[i]+En.Not()*self.__Ffs[i].GetQ(), Reset, Clk)
+                Out[i] = self.__Ffs[i].Operate(En*Input_m[i]+En.Not()*self.__Ffs[i].GetQ(), Reset, Clk)
         return Out
 
     def Read(self, Open = None, Own = None):
@@ -366,13 +363,6 @@ class Register_Sb: # Allow change a specific bit
         else:
             for i in range(self.__nBits):
                 Out[i] = self.__Ffs[i].GetQ()
-        return Out
-
-    def SetBit(self, Input, Mask, En, Clk):
-        Out = [0]*self.__nBits
-        Data = self.Read()
-        Input_m = [Mask[i].Not()*Data[i]+Mask[i]*Input[i] for i in range(self.__nBits)]
-        self.Act(Input_m, En, LogicBit(0), Clk)
         return Out
 
 class RegTris:

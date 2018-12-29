@@ -50,7 +50,7 @@ class ALU8bTris12b:
         Zero = A[7].Not()*A[6].Not()*A[5].Not()*A[4].Not()*A[3].Not()*A[2].Not()*A[1].Not()*A[0].Not()
         Mask = Utils.VecBinToPyList([0, 0, 0, 0, 0, 0, 1, 1])
         Flags = [Zero,CarryBorrow]+Utils.VecBinToPyList([0, 0, 0, 0, 0, 0])
-        F.SetBit(Flags, Mask, Word.FIn, Clk)
+        F.Act(Flags, Mask, Word.FIn, LogicBit(0), Clk)
 
         [A,B] = self.__tristate.Buffer(A, Bus, Dir, AluOut) # Dir=1 and EOut=1 -> put A in B
         return B
@@ -176,7 +176,7 @@ def flogic(clock):
     byte03 = Utils.VecBinToPyList([0,0,0,1,0,0,0,0,0,0,0,1]) # 04 JUMP 01h
     byte04 = Utils.VecBinToPyList([0,0,1,1,0,0,0,0,0,0,1,1]) # 02 SUM 03h
     byte05 = Utils.VecBinToPyList([0,1,0,1,0,0,0,0,0,0,0,0]) # 05 LDC
-    byte06 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 06
+    byte06 = Utils.VecBinToPyList([0,0,0,1,0,0,0,0,0,0,0,0]) # 06 JUMP 00h
     byte07 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 07
     byte08 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 08
     byte09 = Utils.VecBinToPyList([0,0,0,0,0,0,0,0,0,0,0,0]) # 09
