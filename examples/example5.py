@@ -9,14 +9,14 @@ from logicbit.keyboard import *
 def flogic(clock):
 
     Alu = ALU8b()             # 8-bit arithmetic and logic unit
-    Ram = RAM(2,8)            # 2 bits address and 8 bits of data
+    _Ram = RamMask(8,8)           # 4 bits address and 8 bits of data
 
     AddSub = LogicBit(0)
     Alu0 = LogicBit(0)
     Alu1 = LogicBit(0)
 
     A = Utils.VecBinToPyList([1, 1, 1, 1, 1, 1, 1, 1])
-    B = Utils.VecBinToPyList([0, 0, 0, 0, 0, 0, 0, 1])
+    B = Utils.VecBinToPyList([0, 0, 0, 0, 1, 0, 0, 1])
     Printer(A,"A")
     Printer(B,"B")
 
@@ -26,6 +26,13 @@ def flogic(clock):
     #D1 = LogicBit(0)
     We = LogicBit(1)
     Reset = LogicBit(0)
+
+    data = [A, B]
+    Mask=Utils.VecBinToPyList([1, 1, 1, 1, 1, 1, 1, 1])
+    for value, addr in zip(data, range(len(data))):
+        addr = Utils.BinValueToPyList(addr,8)
+        for Clk in [LogicBit(0), LogicBit(1)]:
+            _Ram.Act(addr, value, Mask, LogicBit(1), LogicBit(0), Clk)
 
     vect =[A,B,A,B] # test mux
     sel = [LogicBit(1), LogicBit(0)]
@@ -49,7 +56,7 @@ def flogic(clock):
                 We = LogicBit(0)
 
         C,Carry = Alu.Act(A, B, AddSub, Alu0, Alu1)
-        #C = Ram.Act(Addr, Data, We, Reset, Clk)
+        #C = _Ram.Act(Addr, Data, We, Reset, Clk)
 
         #if (Clk == 1):
         Printer(C)

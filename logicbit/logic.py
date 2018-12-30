@@ -634,7 +634,7 @@ class RAM2x2b: # RAM memory of 2-bits address and 2-bits of data
         Out = [d0 ,d1]
         return Out
 
-class RAM: # RAM memory of 4-bits address and 8-bits of data
+class Ram: # RAM memory
     def __init__(self, AddrSize, DataSize):
         self.__AddrSize = AddrSize
         self.__DataSize = DataSize
@@ -672,13 +672,63 @@ class RAM: # RAM memory of 4-bits address and 8-bits of data
         DataOut = self.Act(Addr, DataIn, LogicBit(1), LogicBit(0), LogicBit(0))
         return DataOut
 
-class RAMTris: # RAM memory with tri-state
+class RamTris: # Ram memory with tri-state
     def __init__(self, AddrSize, DataSize):
-        self.__Ram = RAM(AddrSize, DataSize)
+        self.__Ram = Ram(AddrSize, DataSize)
         self.__tristate = TristateBuffer()
 
     def Act(self, Bus, Addr, We, RamOut, Reset, Clk):
         Dir = LogicBit(1)
         A = self.__Ram.Act(Addr, Bus, We, Reset, Clk)
+        [A, B] = self.__tristate.Buffer(A, Bus, Dir, RamOut)  # Dir=1 and RamOut=1 -> puts A in B
+        return B
+
+class RamMask: # RAM memory with mask
+    def __init__(self, AddrSize, DataSize):
+        self.__AddrSize = AddrSize
+        self.__DataSize = DataSize
+        self.__Ffs = [[Flipflop("D", "UP") for i in range(DataSize)] for j in range(2**AddrSize)]
+
+    def __GetLine(self, Line, Addr):
+        size = len(Addr)
+        t = [int(bin(Line)[2:].zfill(size)[i]) for i in range(size)]  # binary value in list exp: Line=3, size=4 [0,0,1,1]
+        value = Addr[0].Get(t[size - 1])
+        for i in range(1, size):
+            value = value * Addr[i].Get(t[size - 1 - i]) # product of LogicBit's
+        return value
+
+    def Act(self, Addr, DataIn, Mask, We, Reset, Clk):
+        values = [[LogicBit(0) for i in range(self.__DataSize)] for j in range(2**self.__AddrSize)]
+        read = [[0 for i in range(self.__DataSize)] for j in range(2 ** self.__AddrSize)]
+        for i in range(2**self.__AddrSize):
+            Line = self.__GetLine(i, Addr)
+            for j in range(self.__DataSize):
+                w = We * Mask[j] *Line   # write data
+                r = We.Not() * Line      # read data
+                read[i][j]=r
+                ff = (w * DataIn[j]).Not() * (w.Not() * self.__Ffs[i][j].GetQ()).Not()
+                values[i][j] = self.__Ffs[i][j].Operate(ff.Not(), Reset, Clk)
+
+        DataOut = [0 for i in range(self.__DataSize)]
+        for i in range(self.__DataSize):
+            DataOut[i]=values[0][i]*read[0][i]
+            for j in range(1,2 ** self.__AddrSize):
+                DataOut[i]=DataOut[i]+values[j][i]*read[j][i] # j is line and i is bit
+        return DataOut
+
+    def Read(self, Addr):
+        DataIn = [LogicBit(0) for i in self.__DataSize]
+        DataOut = self.Act(Addr, DataIn, LogicBit(1), LogicBit(0), LogicBit(0))
+        return DataOut
+
+
+class RamMaskTris: # RAM memory with mask and tri-state
+    def __init__(self, AddrSize, DataSize):
+        self.__Ram = RamMask(AddrSize, DataSize)
+        self.__tristate = TristateBuffer()
+
+    def Act(self, Bus, Addr, Mask, We, RamOut, Reset, Clk):
+        Dir = LogicBit(1)
+        A = self.__Ram.Act(Addr, Bus, Mask, We, Reset, Clk)
         [A, B] = self.__tristate.Buffer(A, Bus, Dir, RamOut)  # Dir=1 and RamOut=1 -> puts A in B
         return B

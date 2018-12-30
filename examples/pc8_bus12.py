@@ -158,7 +158,7 @@ def flogic(clock):
     Bus = [LogicBit(0) for bit in range(12)] # initializes 12 bits of the Bus with 0
     Pc = PC8bTris()           # program counter of 8 bits with tri-state
     Mar = MarRegister()       # memory address register
-    Ram = RAMTris(8,12)       # RAM memory, 8 bits address and 12 bits of data
+    Ram = RamTris(8,12)       # RAM memory, 8 bits address and 12 bits of data
     A = Reg8bTris12b()        # Accumulator register
     B = Register8b()          # B register
     F = Register8b_Sb()       # Flag register
