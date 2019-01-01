@@ -5,8 +5,27 @@
 # e-mail: cleonerp@gmail.com
 # Apache License
 
-class LogicBit:
-    def __init__(self, value):
+class SymbolicBit:
+    def __init__(self, type, name, equal=""):
+        self.type = type
+        self.name = name
+        self.SetEqual(equal)
+
+    def GetName(self, type):
+        if(type == 1):
+            return self.name
+        else:
+            return "'"+self.name
+
+    def SetEqual(self, value):
+        self.equal = value
+
+    def GetEqual(self):
+        return self.equal
+
+class LogicBit(SymbolicBit):
+    def __init__(self, value, name="", equal=""):
+        SymbolicBit.__init__(self, "bit", name, equal)
         self.value = value
     
     def __str__(self):
@@ -14,17 +33,21 @@ class LogicBit:
     
     def __mul__(self, other): # And logic
         value = self.value and other.value
-        return LogicBit(value)
+        equal = self.GetName(1)+" and "+other.GetName(1)
+        return LogicBit(value,"",equal)
     
     def __add__(self, other): # Or logic
         value = self.value or other.value
-        return LogicBit(value)
+        equal = self.GetName(1) + " or " + other.GetName(1)
+        return LogicBit(value,"",equal)
     
     def __xor__(self, other): # OR-Exclusive logic
         value = self.value ^ other.value
-        return LogicBit(value)
+        equal = self.GetName(1) + " xor " + other.GetName(1)
+        return LogicBit(value,"",equal)
 
     def __eq__(self, other):
+        self.SetEqual(other.GetEqual(1))
         return self.value == other
     
     def Not(self):
@@ -39,6 +62,9 @@ class LogicBit:
         if(type == 0):
             return self.Not()
         return LogicBit(self.value)
+
+    def GetEqual(self):
+        self.GetEqual()
 
 class Flipflop:
     def __init__(self, Type, Level):
@@ -634,7 +660,7 @@ class RAM2x2b: # RAM memory of 2-bits address and 2-bits of data
         Out = [d0 ,d1]
         return Out
 
-class Ram: # RAM memory
+class Ram: # Ram memory
     def __init__(self, AddrSize, DataSize):
         self.__AddrSize = AddrSize
         self.__DataSize = DataSize
@@ -683,7 +709,7 @@ class RamTris: # Ram memory with tri-state
         [A, B] = self.__tristate.Buffer(A, Bus, Dir, RamOut)  # Dir=1 and RamOut=1 -> puts A in B
         return B
 
-class RamMask: # RAM memory with mask
+class RamMask: # Ram memory with mask
     def __init__(self, AddrSize, DataSize):
         self.__AddrSize = AddrSize
         self.__DataSize = DataSize
