@@ -5,66 +5,162 @@
 # e-mail: cleonerp@gmail.com
 # Apache License
 
-class SymbolicBit:
-    def __init__(self, type, name, equal=""):
+class Elements():
+    # static variables
+    List = []
+    History = False
+    Count = {'bit': 0, 'ff': 0}
+
+    def __init__(self, type, name=""):
+        self.id = self.Count[type]              # id is equal the count of specified type
         self.type = type
-        self.name = name
-        self.SetEqual(equal)
-
-    def GetName(self, type):
-        if(type == 1):
-            return self.name
+        if (name != ""):
+            self.name = name
         else:
-            return "'"+self.name
+            self.name = type + str(self.id)     # if name is not defined, generate the name
+        self.Count[type] += 1                   # increment the number of elements of the specified type
 
-    def SetEqual(self, value):
-        self.equal = value
+    def getHistory(self):
+        return self.History
 
-    def GetEqual(self):
-        return self.equal
+    def getId(self):
+        return self.id                          # get id
 
-class LogicBit(SymbolicBit):
-    def __init__(self, value, name="", equal=""):
-        SymbolicBit.__init__(self, "bit", name, equal)
+    def getElementName(self):
+        return self.name
+
+    def getCount(self):
+        return self.Count[self.type]           # get count of specified type
+
+    def addElement(self, element):             # add elements to the list to tell the story
+        self.List.append(element)
+
+    def printList(self):
+        for item in self.List:
+            print(item.getValue())
+
+class SymbolicBit():
+    def __init__(self, name):
+        self.symbol = name
+
+    def __smaller(self, mlist, value):
+        result = [0, ""]
+        for item in mlist:
+            if (value < item[0]):
+                result = item
+                break
+        return result
+
+    def __DeMorgan(self): # DeMorgan’s Theorems
+        mlist = self.symbol.replace('+', ',').replace('*', ',').split(',') # split for + and *
+        for i in range(len(mlist)):
+            if ("'" in mlist[i]):
+                mlist[i] = mlist[i].replace("'", "")
+            else:
+                mlist[i] = "'" + mlist[i]
+        l_or = [i for i in range(len(self.symbol)) if self.symbol.startswith('+', i)]   # find all opsitions of + operation
+        l_and = [i for i in range(len(self.symbol)) if self.symbol.startswith('*', i)]  # find all opsitions of * operation
+        l = []
+        for i in l_or:
+            l.append([i, '*'])
+        for i in l_and:
+            l.append([i, '+'])
+        l = sorted(l)
+        value = 0
+        result = ""
+        for item in mlist:
+            value, oper = self.__smaller(l, value)
+            result += item + oper
+        return result
+
+    def __str__(self):
+        return str(self.symbol)
+
+    def __mul__(self, other):
+        result = self.symbol + '*' + other.symbol
+        return SymbolicBit(result)
+
+    def __add__(self, other):
+        result = self.symbol + '+' + other.symbol
+        return SymbolicBit(result)
+
+    def __xor__(self, other):
+        result = self.symbol + '^' + other.symbol
+        return SymbolicBit(result)
+
+    def Not(self):
+        if('+' in self.symbol or '*' in self.symbol or '^' in self.symbol):
+            result = "'("+self.symbol+")"
+        else:
+            result = "'" + self.symbol
+        return SymbolicBit(result)
+
+
+class LogicBit(Elements):
+    # static variables
+    SymbolicExp = False
+    UseElements = False
+
+    def __init__(self, value, name="", equal= None, history = True):
+        if(self.UseElements):
+            Elements.__init__(self, "bit", name)
+        if(self.SymbolicExp and self.UseElements):
+            self.symbol = SymbolicBit(self.getElementName())
+        else:
+            self.symbol = None
+        if (equal == None):
+            self.equal = self.symbol
+        else:
+            self.equal = equal
+        if (self.getHistory() and history == True and self.UseElements):
+            self.addElement(self)
         self.value = value
     
     def __str__(self):
         return str(self.value)
     
     def __mul__(self, other): # And logic
-        value = self.value and other.value
-        equal = self.GetName(1)+" and "+other.GetName(1)
-        return LogicBit(value,"",equal)
+        equal = None
+        if (self.SymbolicExp):
+            equal = self.equal * other.equal     # symbolic expression
+        value = self.value and other.value       # numeric value
+        return LogicBit(value,"",equal,False)
     
     def __add__(self, other): # Or logic
-        value = self.value or other.value
-        equal = self.GetName(1) + " or " + other.GetName(1)
-        return LogicBit(value,"",equal)
+        equal = None
+        if (self.SymbolicExp):
+            equal = self.equal + other.equal     # symbolic expression
+        value = self.value or other.value        # numeric value
+        return LogicBit(value,"",equal,False)
     
     def __xor__(self, other): # OR-Exclusive logic
-        value = self.value ^ other.value
-        equal = self.GetName(1) + " xor " + other.GetName(1)
-        return LogicBit(value,"",equal)
+        equal = None
+        if (self.SymbolicExp):
+            equal = self.equal ^ other.equal     # symbolic expression
+        value = self.value ^ other.value         # numeric value
+        return LogicBit(value,"",equal,False)
 
     def __eq__(self, other):
-        self.SetEqual(other.GetEqual(1))
         return self.value == other
     
     def Not(self):
-        value = not self.value
-        return LogicBit(int(value))
+        equal = None
+        if (self.SymbolicExp):
+            equal = self.equal.Not()
+        value = not self.value           # numeric value
+        return LogicBit(int(value),"",equal,False)
     
     def Set(self, value):
-        self.value = int(value)
-        return LogicBit(value)
+        self.value = int(value)          # numeric value
+        return LogicBit(value,"",None,False)
     
-    def Get(self, type = 1): # if type = 0 return Not, otherwise return value
+    def Get(self, type = 1):             # if type = 0 return Not, otherwise return value
         if(type == 0):
             return self.Not()
-        return LogicBit(self.value)
+        return LogicBit(self.value,"",None,False)
 
-    def GetEqual(self):
-        self.GetEqual()
+    def GetSymbol(self):                 # return string of symbolic expression
+        return str(self.equal)
 
 class Flipflop:
     def __init__(self, Type, Level):

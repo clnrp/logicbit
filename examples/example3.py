@@ -26,16 +26,7 @@ def flogic(clock):
     q2 = f2.GetQ()
     q3 = f3.GetQ()
 
-    reg1 = Register8b_Sb()
-
-    for Clk in [LogicBit(0), LogicBit(1)]:
-        reg1.Act(Utils.VecBinToPyList([1,0,0,0,0,1,1,1]), LogicBit(1), LogicBit(0), Clk)
-    Printer(reg1.Read())
-
-    Mask = Utils.VecBinToPyList([0,0,0,0,0,0,0,1])
-    for Clk in [LogicBit(0), LogicBit(1)]:
-        reg1.SetBit(LogicBit(0), Mask, LogicBit(1), Clk)  # Reset bit zero of the register
-    Printer(reg1.Read())
+    reg1 = Register8b()
 
     while(clock.GetState()):
         Clk = clock.GetClock()
