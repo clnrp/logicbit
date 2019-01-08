@@ -170,7 +170,7 @@ class Mux:
         Out = [LogicBit(0)]*self.__N_out
         for i in range(self.__N_out):
             for j in range(self.__N_s): # bit of select
-                Out[i] += DecBits[j]*Input[j][i] # sum different vectors, but with same index of vector
+                Out[i] += DecBits[j]*Input[j*self.__N_out+i] # sum different vectors, but with same index of vector
         return Out
 
     def Mux16x8(self, Imput, Sel):
@@ -397,6 +397,49 @@ class Counter4b: # Counter of 4 bits
         Q1 = s0.Not()*in1 + s1.Not()*(q1.Not()*q0 + q1*q0.Not())
         Q2 = s0.Not()*in2 + s1.Not()*(q2.Not()*q1*q0 + q2*q1.Not() + q2*q0.Not())
         Q3 = s0.Not()*in3 + s1.Not()*(q3.Not()*q2*q1*q0 + q3*q2.Not() + q3*q1.Not() + q3*q0.Not())
+
+        q0 = self.__Ff0.Operate(En*Q0+En.Not()*self.__Ff0.GetQ(), LogicBit(0), Clk)
+        q1 = self.__Ff1.Operate(En*Q1+En.Not()*self.__Ff1.GetQ(), LogicBit(0), Clk)
+        q2 = self.__Ff2.Operate(En*Q2+En.Not()*self.__Ff2.GetQ(), LogicBit(0), Clk)
+        q3 = self.__Ff3.Operate(En*Q3+En.Not()*self.__Ff3.GetQ(), LogicBit(0), Clk)
+        return [q0,q1,q2,q3]
+
+    def Operate(self, Clk):
+        In = [LogicBit(0) for bit in range(4)]
+        En = LogicBit(1)
+        Load = LogicBit(0)
+        Reset = LogicBit(0)
+        return self.Act(En, In, Load, Reset, Clk)
+
+    def Read(self):
+        Out = [0]*4
+        Out[0] = self.__Ff0.GetQ()
+        Out[1] = self.__Ff1.GetQ()
+        Out[2] = self.__Ff2.GetQ()
+        Out[3] = self.__Ff3.GetQ()
+        return Out
+
+class CounterSen4b: # Counter of 4 bits
+    def __init__(self):
+        self.__Ff0 = Flipflop("D", "UP")
+        self.__Ff1 = Flipflop("D", "UP")
+        self.__Ff2 = Flipflop("D", "UP")
+        self.__Ff3 = Flipflop("D", "UP")
+
+    def Act(self, Input, En, Sen, Load, Reset, Clk): # Sen = 1 increase and Sen = 0 decrease
+        in0,in1,in2,in3 = Input
+        q0 = self.__Ff0.GetQ()
+        q1 = self.__Ff1.GetQ()
+        q2 = self.__Ff2.GetQ()
+        q3 = self.__Ff3.GetQ()
+
+        s0 = Load.Not() + Reset      # s0.Not()=1 -> Load=1 and Reset=0
+        s1 = s0.Not() + Reset        # s1.Not()=1 -> s1=0 and Reset=0
+
+        Q0 = s0.Not()*in0 + s1.Not()*(q0.Not())
+        Q1 = s0.Not()*in1 + s1.Not()*(Sen*(q1.Not()*q0 + q1*q0.Not()) + Sen.Not()*(q1.Not()*q0.Not() + q1*q0))
+        Q2 = s0.Not()*in2 + s1.Not()*(Sen*(q2.Not()*q1*q0 + q2*q1.Not() + q2*q0.Not()) + Sen.Not()*(q2.Not()*q1.Not()*q0.Not() + q2*q1 + q2*q0))
+        Q3 = s0.Not()*in3 + s1.Not()*(Sen*(q3.Not()*q2*q1*q0 + q3*q2.Not() + q3*q1.Not() + q3*q0.Not()) + Sen.Not()*(q3.Not()*q2.Not()*q1.Not()*q0.Not() + q3*q2 + q3*q1 + q3*q0))
 
         q0 = self.__Ff0.Operate(En*Q0+En.Not()*self.__Ff0.GetQ(), LogicBit(0), Clk)
         q1 = self.__Ff1.Operate(En*Q1+En.Not()*self.__Ff1.GetQ(), LogicBit(0), Clk)

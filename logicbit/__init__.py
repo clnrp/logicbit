@@ -4,6 +4,6 @@ from logicbit import keyboard
 from logicbit import utils
 from logicbit import quine_mccluskey
 
-__version__ = "1.2.2"
+__version__ = "1.2.5"
 
 print("logicbit version "+__version__)
