@@ -8,8 +8,8 @@ import numpy as np
 # Apache License
 
 class Quine_mcCluskey:
-    def __init__(self, trueTable):
-        self.trueTable = trueTable
+    def __init__(self, truth_table):
+        self.truth_table = truth_table
 
     def BinList(self, n):
         list = []
@@ -41,10 +41,10 @@ class Quine_mcCluskey:
     def Interaction(self, num):
         count = 0
         tmp = []
-        index = list(range(len(self.trueTable)))
-        for i in range(len(self.trueTable)):
-            for j  in range(i,len(self.trueTable)):
-                result = self.trueTable[i]-self.trueTable[j]+self.trueTable[i] # value0-value1+value0
+        index = list(range(len(self.truth_table)))
+        for i in range(len(self.truth_table)):
+            for j  in range(i,len(self.truth_table)):
+                result = self.truth_table[i]-self.truth_table[j]+self.truth_table[i] # value0-value1+value0
                 if(self.Count(result)==num):
                     #if(not any(np.array_equal(result, j) for j in tmp)):
                     tmp.append(result)
@@ -54,18 +54,18 @@ class Quine_mcCluskey:
                     print(i,j,result)
         print(index)
         for i in index:
-            self.minTable.append(self.trueTable[i])
+            self.minTable.append(self.truth_table[i])
         if(count == 0):
-            tmp = self.trueTable
+            tmp = self.truth_table
         return tmp,count
 
     def Compute(self):
         inter = 0
-        self.trueTable = self.TextToArrayBin(self.trueTable)
+        self.truth_table = self.TextToArrayBin(self.truth_table)
         self.minTable = []
         while True:
             inter+=1
-            self.trueTable, count = self.Interaction(inter)
+            self.truth_table, count = self.Interaction(inter)
             print(inter)
             if (count == 0):
                 break;
